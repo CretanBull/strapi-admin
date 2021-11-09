@@ -13,7 +13,7 @@ const {
 
 module.exports = {
   login: function () {
-    console.log(proces.env);
+    console.log(process.env);
     console.log("hello world!");
     return compose([
       (ctx, next) => {
