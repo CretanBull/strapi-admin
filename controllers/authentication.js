@@ -1,7 +1,7 @@
-'use strict';
+"use strict";
 
-const passport = require('koa-passport');
-const compose = require('koa-compose');
+const passport = require("koa-passport");
+const compose = require("koa-compose");
 
 const {
   validateRegistrationInput,
@@ -9,55 +9,70 @@ const {
   validateRegistrationInfoQuery,
   validateForgotPasswordInput,
   validateResetPasswordInput,
-} = require('../validation/authentication');
+} = require("../validation/authentication");
 
 module.exports = {
-  login: compose([
-    (ctx, next) => {
-      return passport.authenticate('local', { session: false }, (err, user, info) => {
-        if (err) {
-          strapi.eventHub.emit('admin.auth.error', { error: err, provider: 'local' });
-          return ctx.badImplementation();
-        }
+  login: function () {
+    console.log(proces.env);
+    console.log("hello world!");
+    return compose([
+      (ctx, next) => {
+        return passport.authenticate(
+          "local",
+          { session: false },
+          (err, user, info) => {
+            if (err) {
+              strapi.eventHub.emit("admin.auth.error", {
+                error: err,
+                provider: "local",
+              });
+              return ctx.badImplementation();
+            }
 
-        if (!user) {
-          strapi.eventHub.emit('admin.auth.error', {
-            error: new Error(info.message),
-            provider: 'local',
-          });
-          return ctx.badRequest(info.message);
-        }
+            if (!user) {
+              strapi.eventHub.emit("admin.auth.error", {
+                error: new Error(info.message),
+                provider: "local",
+              });
+              return ctx.badRequest(info.message);
+            }
 
-        ctx.state.user = user;
+            ctx.state.user = user;
 
-        strapi.eventHub.emit('admin.auth.success', { user, provider: 'local' });
+            strapi.eventHub.emit("admin.auth.success", {
+              user,
+              provider: "local",
+            });
 
-        return next();
-      })(ctx, next);
-    },
-    ctx => {
-      const { user } = ctx.state;
+            return next();
+          }
+        )(ctx, next);
+      },
+      (ctx) => {
+        const { user } = ctx.state;
 
-      ctx.body = {
-        data: {
-          token: strapi.admin.services.token.createJwtToken(user),
-          user: strapi.admin.services.user.sanitizeUser(ctx.state.user), // TODO: fetch more detailed info
-        },
-      };
-    },
-  ]),
+        ctx.body = {
+          data: {
+            token: strapi.admin.services.token.createJwtToken(user),
+            user: strapi.admin.services.user.sanitizeUser(ctx.state.user), // TODO: fetch more detailed info
+          },
+        };
+      },
+    ]);
+  },
 
   renewToken(ctx) {
     const { token } = ctx.request.body;
 
     if (token === undefined) {
-      return ctx.badRequest('Missing token');
+      return ctx.badRequest("Missing token");
     }
 
-    const { isValid, payload } = strapi.admin.services.token.decodeJwtToken(token);
+    const { isValid, payload } =
+      strapi.admin.services.token.decodeJwtToken(token);
 
     if (!isValid) {
-      return ctx.badRequest('Invalid token');
+      return ctx.badRequest("Invalid token");
     }
 
     ctx.body = {
@@ -71,17 +86,16 @@ module.exports = {
     try {
       await validateRegistrationInfoQuery(ctx.request.query);
     } catch (err) {
-      return ctx.badRequest('QueryError', err);
+      return ctx.badRequest("QueryError", err);
     }
 
     const { registrationToken } = ctx.request.query;
 
-    const registrationInfo = await strapi.admin.services.user.findRegistrationInfo(
-      registrationToken
-    );
+    const registrationInfo =
+      await strapi.admin.services.user.findRegistrationInfo(registrationToken);
 
     if (!registrationInfo) {
-      return ctx.badRequest('Invalid registrationToken');
+      return ctx.badRequest("Invalid registrationToken");
     }
 
     ctx.body = { data: registrationInfo };
@@ -93,7 +107,7 @@ module.exports = {
     try {
       await validateRegistrationInput(input);
     } catch (err) {
-      return ctx.badRequest('ValidationError', err);
+      return ctx.badRequest("ValidationError", err);
     }
 
     const user = await strapi.admin.services.user.register(input);
@@ -112,13 +126,13 @@ module.exports = {
     try {
       await validateAdminRegistrationInput(input);
     } catch (err) {
-      return ctx.badRequest('ValidationError', err);
+      return ctx.badRequest("ValidationError", err);
     }
 
     const hasAdmin = await strapi.admin.services.user.exists();
 
     if (hasAdmin) {
-      return ctx.badRequest('You cannot register a new super admin');
+      return ctx.badRequest("You cannot register a new super admin");
     }
 
     const superAdminRole = await strapi.admin.services.role.getSuperAdmin();
@@ -136,7 +150,7 @@ module.exports = {
       roles: superAdminRole ? [superAdminRole.id] : [],
     });
 
-    await strapi.telemetry.send('didCreateFirstAdmin');
+    await strapi.telemetry.send("didCreateFirstAdmin");
 
     ctx.body = {
       data: {
@@ -152,7 +166,7 @@ module.exports = {
     try {
       await validateForgotPasswordInput(input);
     } catch (err) {
-      return ctx.badRequest('ValidationError', err);
+      return ctx.badRequest("ValidationError", err);
     }
 
     strapi.admin.services.auth.forgotPassword(input);
@@ -166,7 +180,7 @@ module.exports = {
     try {
       await validateResetPasswordInput(input);
     } catch (err) {
-      return ctx.badRequest('ValidationError', err);
+      return ctx.badRequest("ValidationError", err);
     }
 
     const user = await strapi.admin.services.auth.resetPassword(input);
